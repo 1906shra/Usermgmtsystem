@@ -2,19 +2,18 @@ import React, { useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
-const NavItem = ({ to, icon, label, onClick, badge }) => (
+const NavItem = ({ to, icon, label, onClick, badge, badgeColor }) => (
   <NavLink
     to={to}
     onClick={onClick}
+    end={to === '/admin' || to === '/dashboard'}
     className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
   >
     <span className="nav-icon">{icon}</span>
     <span style={{ flex: 1 }}>{label}</span>
-    {badge && (
-      <span style={{
-        fontSize: '0.62rem', fontWeight: 700, padding: '0.15rem 0.45rem',
-        background: 'linear-gradient(135deg,#d97706,#b45309)',
-        borderRadius: '999px', color: 'white', letterSpacing: '0.04em',
+    {badge !== undefined && (
+      <span className="nav-badge" style={{
+        background: badgeColor === 'red' ? 'var(--danger)' : 'var(--primary)',
       }}>{badge}</span>
     )}
   </NavLink>
@@ -31,64 +30,74 @@ const Layout = () => {
   };
 
   const close = () => setSidebarOpen(false);
+  const initials = user?.name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || 'U';
 
   return (
     <div className="app-layout">
 
       {/* ── Sidebar ── */}
       <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
+
+        {/* Logo */}
         <div className="sidebar-logo">
           <div className="sidebar-logo-icon">⚡</div>
           <span className="sidebar-logo-text">UserMS</span>
+          {isAdmin && <span className="sidebar-admin-tag">ADMIN</span>}
         </div>
 
         <nav className="sidebar-nav">
-
-          {/* Admin sees Admin Panel as home */}
           {isAdmin ? (
+            /* ── ADMIN SIDEBAR ── */
             <>
-              <span className="nav-section-label">Administration</span>
-              <NavItem to="/admin"     icon="🛡️" label="Admin Panel"  onClick={close} badge="ADMIN" />
-              <NavItem to="/users"     icon="👥" label="All Users"    onClick={close} />
+              <span className="nav-section-label">Control Panel</span>
+              <NavItem to="/admin"   icon="⊞" label="Overview"         onClick={close} />
+              <NavItem to="/users"   icon="👥" label="User Management"  onClick={close} />
+              <NavItem to="/profile" icon="🛡️" label="Roles & Permissions" onClick={close} />
 
-              <span className="nav-section-label">Account</span>
-              <NavItem to="/profile"   icon="👤" label="My Profile"   onClick={close} />
+              <span className="nav-section-label">System</span>
+              <NavItem to="/profile" icon="🔔" label="Alerts"      onClick={close} badge={4} badgeColor="red" />
+              <NavItem to="/profile" icon="📋" label="Audit Log"   onClick={close} />
+              <NavItem to="/profile" icon="⚙️" label="System Settings" onClick={close} />
+              <NavItem to="/profile" icon="⛔" label="Banned Users" onClick={close} badge={2} badgeColor="red" />
             </>
           ) : isAdminOrManager ? (
-            /* Manager */
+            /* ── MANAGER SIDEBAR ── */
             <>
               <span className="nav-section-label">Main</span>
-              <NavItem to="/dashboard" icon="🏠" label="Dashboard"    onClick={close} />
-
-              <span className="nav-section-label">Management</span>
-              <NavItem to="/users"     icon="👥" label="All Users"    onClick={close} />
+              <NavItem to="/admin"   icon="⊞" label="Overview"    onClick={close} />
+              <NavItem to="/users"   icon="👥" label="Users"       onClick={close} />
 
               <span className="nav-section-label">Account</span>
-              <NavItem to="/profile"   icon="👤" label="My Profile"   onClick={close} />
+              <NavItem to="/profile" icon="👤" label="My Profile"  onClick={close} />
             </>
           ) : (
-            /* Regular user */
+            /* ── USER SIDEBAR ── */
             <>
               <span className="nav-section-label">Main</span>
-              <NavItem to="/dashboard" icon="🏠" label="Dashboard"    onClick={close} />
+              <NavItem to="/dashboard" icon="⊞" label="Dashboard"  onClick={close} />
+              <NavItem to="/profile"   icon="👤" label="My Profile" onClick={close} />
 
               <span className="nav-section-label">Account</span>
-              <NavItem to="/profile"   icon="👤" label="My Profile"   onClick={close} />
+              <NavItem to="/profile" icon="🔔" label="Notifications" onClick={close} badge={5} />
+              <NavItem to="/profile" icon="🛡️" label="Security"      onClick={close} />
+              <NavItem to="/profile" icon="⚙️" label="Settings"      onClick={close} />
             </>
           )}
-
         </nav>
 
+        {/* User info at bottom */}
         <div className="sidebar-footer">
           <div className="sidebar-user">
-            <div className="sidebar-avatar">{user?.name?.charAt(0).toUpperCase()}</div>
+            <div className="sidebar-avatar">{initials}</div>
             <div className="sidebar-user-info">
               <div className="sidebar-user-name">{user?.name}</div>
-              <div className="sidebar-user-role">{user?.role} · {user?.status}</div>
+              <div className="sidebar-user-role">
+                {user?.role === 'admin' ? 'Administrator' : user?.role === 'manager' ? 'Manager' : 'Member'}
+              </div>
             </div>
           </div>
           <button className="btn-logout" onClick={handleLogout}>
-            <span>↩</span> Sign Out
+            ↩ Sign Out
           </button>
         </div>
       </aside>
@@ -96,23 +105,24 @@ const Layout = () => {
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 49 }}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 49 }}
           onClick={close}
         />
       )}
 
-      {/* ── Main wrapper ── */}
+      {/* ── Main ── */}
       <div className="main-wrapper">
         <header className="topbar">
           <div className="topbar-left">
-            <button className="btn btn-ghost btn-sm hamburger-btn"
-              onClick={() => setSidebarOpen(p => !p)} aria-label="Toggle sidebar">
+            <button className="hamburger-btn" onClick={() => setSidebarOpen(p => !p)} aria-label="Menu">
               ☰
             </button>
           </div>
           <div className="topbar-right">
             <span className={`badge badge-${user?.role}`}>{user?.role}</span>
-            <span style={{ fontSize: '0.85rem', color: 'var(--text2)' }}>{user?.name}</span>
+            <div className="topbar-avatar">{initials}</div>
+            <span className="topbar-name">{user?.name}</span>
+            <button className="topbar-logout" onClick={handleLogout}>Sign Out</button>
           </div>
         </header>
 
