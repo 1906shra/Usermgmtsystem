@@ -80,11 +80,14 @@ const Layout = () => {
   return (
     <div className="app-layout">
       {/* ── Sidebar ── */}
-      <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
+      <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`} style={isAdmin || isAdminOrManager ? {
+        background: 'linear-gradient(180deg, #130d24 0%, #0f0a1e 100%)',
+        borderRight: '1px solid rgba(124,58,237,0.18)',
+      } : {}}>
         {/* Logo */}
-        <div className="sidebar-logo">
-          <div className="sidebar-logo-icon">⚡</div>
-          <span className="sidebar-logo-text">UserMS</span>
+        <div className="sidebar-logo" style={isAdmin || isAdminOrManager ? { borderBottom: '1px solid rgba(124,58,237,0.15)' } : {}}>
+          <div className="sidebar-logo-icon" style={isAdmin || isAdminOrManager ? { background: 'linear-gradient(135deg,#7c3aed,#db2777)', boxShadow: '0 0 14px rgba(124,58,237,0.5)' } : {}}>⚡</div>
+          <span className="sidebar-logo-text" style={isAdmin || isAdminOrManager ? { background: 'linear-gradient(135deg,#c4b5fd,#fca5a5)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', backgroundClip:'text' } : {}}>UserMS</span>
           {isAdmin && <span className="sidebar-admin-tag">ADMIN</span>}
         </div>
 
@@ -92,13 +95,13 @@ const Layout = () => {
           {isAdmin ? (
             /* ── ADMIN SIDEBAR ── */
             <>
-              <span className="nav-section-label">Control Panel</span>
+              <span className="nav-section-label" style={{ color: 'rgba(196,181,253,0.4)' }}>Control Panel</span>
               <NavItem to="/admin" icon="⊞" label="Overview" onClick={close} />
               <NavItem to="/users" icon="👥" label="User Management" onClick={close} />
               <ToastNavItem icon="🛡️" label="Roles & Permissions" onClick={comingSoon} />
               <ToastNavItem icon="📊" label="Analytics" onClick={comingSoon} />
 
-              <span className="nav-section-label">System</span>
+              <span className="nav-section-label" style={{ color: 'rgba(196,181,253,0.4)' }}>System</span>
               <ToastNavItem icon="🔔" label="Alerts" badge={4} badgeColor="red" onClick={comingSoon} />
               <ToastNavItem icon="📋" label="Audit Log" onClick={comingSoon} />
               <ToastNavItem icon="⚙️" label="System Settings" onClick={comingSoon} />
@@ -133,17 +136,13 @@ const Layout = () => {
         </nav>
 
         {/* User info at bottom */}
-        <div className="sidebar-footer">
-          <div className="sidebar-user">
-            <div className="sidebar-avatar">{initials}</div>
+        <div className="sidebar-footer" style={isAdmin || isAdminOrManager ? { borderTop: '1px solid rgba(124,58,237,0.15)' } : {}}>
+          <div className="sidebar-user" style={isAdmin || isAdminOrManager ? { background: 'rgba(124,58,237,0.1)', border: '1px solid rgba(124,58,237,0.2)' } : {}}>
+            <div className="sidebar-avatar" style={isAdmin || isAdminOrManager ? { background: 'linear-gradient(135deg,#7c3aed,#db2777)' } : {}}>{initials}</div>
             <div className="sidebar-user-info">
               <div className="sidebar-user-name">{user?.name}</div>
-              <div className="sidebar-user-role">
-                {user?.role === 'admin'
-                  ? 'Administrator'
-                  : user?.role === 'manager'
-                  ? 'Manager'
-                  : 'Member'}
+              <div className="sidebar-user-role" style={isAdmin || isAdminOrManager ? { color: 'rgba(196,181,253,0.5)' } : {}}>
+                {user?.role === 'admin' ? 'Administrator' : user?.role === 'manager' ? 'Manager' : 'Member'}
               </div>
             </div>
           </div>

@@ -327,58 +327,139 @@ const AdminPanel = () => {
     return <span className="badge badge-pending">⏳ Pending</span>;
   };
 
+  /* ── Admin-specific styles (completely different from user dashboard) ── */
+  const A = {
+    page: { background: 'transparent', minHeight: '100vh' },
+    header: {
+      display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between',
+      flexWrap: 'wrap', gap: '1rem', marginBottom: '1.75rem',
+      padding: '1.5rem 1.75rem',
+      background: 'linear-gradient(135deg, rgba(124,58,237,0.12), rgba(239,68,68,0.06))',
+      border: '1px solid rgba(124,58,237,0.2)',
+      borderRadius: '16px',
+    },
+    titleWrap: {},
+    title: { fontSize: '1.85rem', fontWeight: 900, letterSpacing: '-0.02em',
+      background: 'linear-gradient(135deg, #c4b5fd, #f87171)', WebkitBackgroundClip: 'text',
+      WebkitTextFillColor: 'transparent', backgroundClip: 'text' },
+    sub: { fontSize: '0.83rem', color: 'rgba(196,181,253,0.6)', marginTop: '0.25rem' },
+    actions: { display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' },
+    searchInput: {
+      padding: '0.6rem 1rem', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(124,58,237,0.25)',
+      borderRadius: '8px', color: '#e8edf5', fontSize: '0.85rem', outline: 'none', width: '210px',
+      fontFamily: 'inherit',
+    },
+    btnCsv: {
+      padding: '0.55rem 1rem', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)',
+      borderRadius: '8px', color: '#e8edf5', fontSize: '0.82rem', cursor: 'pointer', fontFamily: 'inherit',
+    },
+    btnAdd: {
+      padding: '0.55rem 1.1rem', background: 'linear-gradient(135deg, #7c3aed, #db2777)',
+      border: 'none', borderRadius: '8px', color: '#fff', fontSize: '0.85rem', fontWeight: 700,
+      cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 4px 16px rgba(124,58,237,0.35)',
+    },
+    statsGrid: { display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' },
+    statCard: (orbColor) => ({
+      background: 'linear-gradient(135deg, #1a1035, #16122a)',
+      border: '1px solid rgba(124,58,237,0.18)',
+      borderRadius: '14px', padding: '1.35rem', position: 'relative', overflow: 'hidden',
+      transition: 'transform .2s, box-shadow .2s',
+    }),
+    tableCard: {
+      background: 'linear-gradient(180deg, #130d24, #0f0a1e)',
+      border: '1px solid rgba(124,58,237,0.18)',
+      borderRadius: '14px', overflow: 'hidden', marginBottom: '1.5rem',
+    },
+    tableHeader: {
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      padding: '1rem 1.25rem', borderBottom: '1px solid rgba(124,58,237,0.12)',
+      flexWrap: 'wrap', gap: '0.65rem',
+      background: 'rgba(124,58,237,0.06)',
+    },
+    filterBtn: (active) => ({
+      padding: '0.3rem 0.75rem', borderRadius: '8px', fontSize: '0.79rem', cursor: 'pointer',
+      fontFamily: 'inherit', border: active ? 'none' : '1px solid rgba(196,181,253,0.18)',
+      background: active ? 'linear-gradient(135deg,#7c3aed,#6d28d9)' : 'transparent',
+      color: active ? '#fff' : 'rgba(196,181,253,0.6)',
+      boxShadow: active ? '0 2px 10px rgba(124,58,237,0.35)' : 'none',
+    }),
+    bottomGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(270px,1fr))', gap: '1.25rem' },
+    bottomCard: {
+      background: 'linear-gradient(135deg, #1a1035, #16122a)',
+      border: '1px solid rgba(124,58,237,0.15)',
+      borderRadius: '14px', padding: '1.35rem',
+    },
+  };
+
   return (
-    <div className="page">
-      {/* Header */}
-      <div className="ad-topbar">
-        <div>
-          <h1 className="ad-title">Admin Overview</h1>
-          <p className="ad-sub">Full system control · Last sync: 2 min ago</p>
+    <div style={{ animation: 'fadeUp .25s ease' }}>
+      {/* ── Header ── */}
+      <div style={A.header}>
+        <div style={A.titleWrap}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.25rem' }}>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: 'linear-gradient(135deg,#7c3aed,#db2777)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem', boxShadow: '0 0 16px rgba(124,58,237,0.45)' }}>🛡️</div>
+            <h1 style={A.title}>Admin Overview</h1>
+          </div>
+          <p style={A.sub}>Full system control · {pagination.total} registered users · Last sync: just now</p>
         </div>
-        <div className="ad-topbar-actions">
-          <input
-            type="text" name="search" value={filters.search} onChange={fch}
-            placeholder="🔍 Search users…" className="input ad-search"
-          />
-          <button className="btn btn-outline btn-sm" onClick={handleExportCSV}>Export CSV</button>
+        <div style={A.actions}>
+          <input type="text" name="search" value={filters.search} onChange={fch}
+            placeholder="🔍 Search users…" style={A.searchInput}
+            onFocus={e => e.target.style.borderColor = 'rgba(167,139,250,0.5)'}
+            onBlur={e => e.target.style.borderColor = 'rgba(124,58,237,0.25)'} />
+          <button style={A.btnCsv} onClick={handleExportCSV}
+            onMouseEnter={e => e.target.style.background='rgba(255,255,255,0.1)'}
+            onMouseLeave={e => e.target.style.background='rgba(255,255,255,0.06)'}>
+            📤 Export CSV
+          </button>
           {isAdmin && (
-            <button className="btn btn-primary btn-sm" onClick={openCreate}>+ Add User</button>
+            <button style={A.btnAdd} onClick={openCreate}
+              onMouseEnter={e => e.target.style.transform='translateY(-1px)'}
+              onMouseLeave={e => e.target.style.transform='none'}>
+              ＋ Add User
+            </button>
           )}
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="ad-stats">
-        {STATS.map(s => (
-          <div key={s.label} className="ad-stat-card">
-            <div className="ad-stat-orb" style={{ background: s.orbColor }} />
-            <div className="ad-stat-icon-wrap" style={{ background: s.iconBg }}>{s.icon}</div>
-            <div className="ad-stat-value">{s.value}</div>
-            <div className="ad-stat-label">{s.label}</div>
-            <div className="ad-stat-sub" style={{ color: s.subColor }}>{s.sub}</div>
+      {/* ── Stats ── */}
+      <div style={{ ...A.statsGrid, gridTemplateColumns: 'repeat(4,1fr)' }}>
+        {STATS.map((s, i) => (
+          <div key={s.label} style={A.statCard(s.orbColor)}
+            onMouseEnter={e => { e.currentTarget.style.transform='translateY(-3px)'; e.currentTarget.style.boxShadow='0 8px 28px rgba(124,58,237,0.2)'; }}
+            onMouseLeave={e => { e.currentTarget.style.transform='none'; e.currentTarget.style.boxShadow='none'; }}>
+            <div style={{ position:'absolute',width:80,height:80,borderRadius:'50%',top:-18,right:-18,background:s.orbColor,filter:'blur(2px)',opacity:.5 }} />
+            <div style={{ width:34,height:34,borderRadius:9,background:s.iconBg,display:'flex',alignItems:'center',justifyContent:'center',fontSize:'1.1rem',marginBottom:'.65rem',position:'relative',zIndex:1 }}>{s.icon}</div>
+            <div style={{ fontSize:'1.85rem',fontWeight:900,lineHeight:1,letterSpacing:'-.02em',position:'relative',zIndex:1 }}>{s.value}</div>
+            <div style={{ fontSize:'.78rem',color:'rgba(196,181,253,0.6)',marginTop:'.25rem',fontWeight:500 }}>{s.label}</div>
+            <div style={{ fontSize:'.72rem',marginTop:'.18rem',fontWeight:500,color:s.subColor }}>{s.sub}</div>
           </div>
         ))}
       </div>
 
-      {/* Table */}
-      <div className="ad-table-card">
-        <div className="ad-table-header">
-          <span className="ad-table-title">User Management</span>
-          <div className="ad-table-filters">
-            <button className={`ad-filter-btn ${!filters.status && !filters.role ? "active" : ""}`}
+      {/* ── Table ── */}
+      <div style={A.tableCard}>
+        <div style={A.tableHeader}>
+          <span style={{ fontSize:'.95rem',fontWeight:700,color:'#e8edf5' }}>User Management</span>
+          <div style={{ display:'flex',alignItems:'center',gap:'.4rem',flexWrap:'wrap' }}>
+            <button style={A.filterBtn(!filters.status && !filters.role)}
               onClick={() => { setFilters(p => ({ ...p, status: "", role: "" })); setPage(1); }}>All</button>
-            <button className={`ad-filter-btn ${filters.status === "active" ? "active" : ""}`}
+            <button style={A.filterBtn(filters.status === "active")}
               onClick={() => { setFilters(p => ({ ...p, status: "active", role: "" })); setPage(1); }}>Active</button>
-            <button className={`ad-filter-btn ${filters.status === "inactive" ? "active" : ""}`}
+            <button style={A.filterBtn(filters.status === "inactive" && filters.role === "")}
               onClick={() => { setFilters(p => ({ ...p, status: "inactive", role: "" })); setPage(1); }}>Pending</button>
-            <button className="ad-filter-btn"
+            <button style={A.filterBtn(false)}
               onClick={() => { setFilters(p => ({ ...p, status: "inactive", role: "" })); setPage(1); }}>Banned</button>
             {isAdmin && selectedIds.length > 0 && (
-              <button className="ad-filter-btn-actions" onClick={handleBulkBan} disabled={actLoading}>
+              <button style={{ ...A.filterBtn(false), border:'1px solid rgba(239,68,68,0.35)', color:'#f87171' }}
+                onClick={handleBulkBan} disabled={actLoading}>
                 ⚙ Bulk Actions ({selectedIds.length})
               </button>
             )}
-            <select name="role" value={filters.role} onChange={fch} className="input ad-role-filter">
+            <select name="role" value={filters.role} onChange={fch} style={{
+              padding:'.32rem .7rem',background:'rgba(0,0,0,0.3)',border:'1px solid rgba(124,58,237,0.2)',
+              borderRadius:'8px',color:'#e8edf5',fontSize:'.79rem',outline:'none',fontFamily:'inherit',width:120,
+            }}>
               <option value="">All Roles</option>
               <option value="admin">Admin</option>
               <option value="manager">Manager</option>
@@ -387,73 +468,70 @@ const AdminPanel = () => {
           </div>
         </div>
 
-        <div className="table-wrapper">
+        {/* Table content */}
+        <div style={{ overflowX: 'auto' }}>
           {loading ? (
-            <div style={{ padding: "3rem", textAlign: "center", color: "var(--text3)" }}>
-              <div className="spinner" style={{ margin: "0 auto 1rem" }} />Loading…
+            <div style={{ padding: '3rem', textAlign: 'center', color: 'rgba(196,181,253,0.4)' }}>
+              <div className="spinner" style={{ margin: '0 auto 1rem', borderTopColor: '#a78bfa' }} />
+              Loading users…
             </div>
           ) : users.length === 0 ? (
-            <div className="empty-state">
-              <div className="empty-state-icon">👥</div>
+            <div style={{ display:'flex',flexDirection:'column',alignItems:'center',padding:'4rem 2rem',color:'rgba(196,181,253,0.4)' }}>
+              <div style={{ fontSize:'2.5rem',marginBottom:'.75rem',opacity:.5 }}>👥</div>
               <p>No users found.</p>
-              {isAdmin && <button className="btn btn-primary" style={{ marginTop: "1rem" }} onClick={openCreate}>+ Add First User</button>}
+              {isAdmin && <button style={{ marginTop:'1rem', ...A.btnAdd }} onClick={openCreate}>+ Add First User</button>}
             </div>
           ) : (
-            <table className="table">
+            <table style={{ width:'100%',borderCollapse:'collapse',fontSize:'.875rem' }}>
               <thead>
-                <tr>
-                  <th style={{ width: 40 }}>
-                    <input type="checkbox" className="table-checkbox"
+                <tr style={{ background:'rgba(124,58,237,0.08)' }}>
+                  <th style={{ padding:'.75rem 1rem',width:40,textAlign:'left' }}>
+                    <input type="checkbox" style={{ accentColor:'#a78bfa',cursor:'pointer' }}
                       checked={selectedIds.length === users.length && users.length > 0}
                       onChange={toggleAll} />
                   </th>
-                  <th>USER</th>
-                  <th>STATUS</th>
-                  <th>PLAN</th>
-                  <th>ROLE</th>
-                  <th>JOINED</th>
-                  <th>LAST ACTIVE</th>
-                  <th>ACTIONS</th>
+                  {['USER','STATUS','PLAN','ROLE','JOINED','LAST ACTIVE','ACTIONS'].map(h => (
+                    <th key={h} style={{ padding:'.75rem 1rem',textAlign:'left',fontSize:'.68rem',fontWeight:700,color:'rgba(167,139,250,0.6)',textTransform:'uppercase',letterSpacing:'.08em',whiteSpace:'nowrap',borderBottom:'1px solid rgba(124,58,237,0.12)' }}>{h}</th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
                 {users.map(u => (
-                  <tr key={u._id}>
-                    <td>
-                      <input type="checkbox" className="table-checkbox"
+                  <tr key={u._id} style={{ borderBottom:'1px solid rgba(124,58,237,0.08)', transition:'background .15s' }}
+                    onMouseEnter={e => e.currentTarget.style.background='rgba(124,58,237,0.05)'}
+                    onMouseLeave={e => e.currentTarget.style.background='transparent'}>
+                    <td style={{ padding:'.8rem 1rem' }}>
+                      <input type="checkbox" style={{ accentColor:'#a78bfa',cursor:'pointer' }}
                         checked={selectedIds.includes(u._id)}
-                        onChange={() => toggleSelect(u._id)}
-                        onClick={e => e.stopPropagation()} />
+                        onChange={() => toggleSelect(u._id)} onClick={e => e.stopPropagation()} />
                     </td>
-                    <td style={{ cursor: "pointer" }} onClick={() => setSel(u)}>
-                      <div className="user-cell">
-                        <div className="user-avatar-sm" style={{ background: avatarColor(u.name) }}>
+                    <td style={{ padding:'.8rem 1rem',cursor:'pointer' }} onClick={() => setSel(u)}>
+                      <div style={{ display:'flex',alignItems:'center',gap:'.65rem' }}>
+                        <div style={{ width:32,height:32,borderRadius:'50%',background:avatarColor(u.name),display:'flex',alignItems:'center',justifyContent:'center',fontSize:'.78rem',fontWeight:700,color:'#fff',flexShrink:0 }}>
                           {u.name.charAt(0).toUpperCase()}
                         </div>
                         <div>
-                          <div className="user-cell-name">{u.name}</div>
-                          <div className="user-cell-email">{u.email}</div>
+                          <div style={{ fontWeight:500,fontSize:'.875rem' }}>{u.name}</div>
+                          <div style={{ fontSize:'.73rem',color:'rgba(139,146,164,0.7)' }}>{u.email}</div>
                         </div>
                       </div>
                     </td>
-                    <td>{statusBadge(u.status)}</td>
-                    <td><span className="badge badge-free">Free</span></td>
-                    <td><span className={`badge badge-${u.role}`}>{u.role}</span></td>
-                    <td style={{ fontSize: "0.8rem", color: "var(--text2)" }}>{fmt(u.createdAt)}</td>
-                    <td style={{ fontSize: "0.8rem", color: "var(--text2)" }}>{fmt(u.updatedAt)}</td>
-                    <td onClick={e => e.stopPropagation()}>
-                      <div className="action-btns">
-                        <button className="btn btn-sm"
-                          style={{ background: "rgba(6,182,212,0.12)", color: "#22d3ee", border: "1px solid rgba(6,182,212,0.25)", fontSize: "0.74rem" }}
-                          onClick={() => setSel(u)}>View</button>
-                        {isAdmin && (
-                          <button className="btn btn-sm"
-                            style={{ background: "rgba(96,165,250,0.1)", color: "#60a5fa", border: "1px solid rgba(96,165,250,0.25)", fontSize: "0.74rem" }}
-                            onClick={() => openEdit(u)}>Edit</button>
-                        )}
+                    <td style={{ padding:'.8rem 1rem' }}>{statusBadge(u.status)}</td>
+                    <td style={{ padding:'.8rem 1rem' }}>
+                      <span style={{ padding:'.18rem .6rem',background:'rgba(255,255,255,0.07)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'999px',fontSize:'.7rem',fontWeight:600,color:'rgba(139,146,164,0.8)' }}>Free</span>
+                    </td>
+                    <td style={{ padding:'.8rem 1rem' }}>
+                      <span className={`badge badge-${u.role}`}>{u.role}</span>
+                    </td>
+                    <td style={{ padding:'.8rem 1rem',fontSize:'.79rem',color:'rgba(139,146,164,0.7)' }}>{fmt(u.createdAt)}</td>
+                    <td style={{ padding:'.8rem 1rem',fontSize:'.79rem',color:'rgba(139,146,164,0.7)' }}>{fmt(u.updatedAt)}</td>
+                    <td style={{ padding:'.8rem 1rem' }} onClick={e => e.stopPropagation()}>
+                      <div style={{ display:'flex',gap:'.3rem' }}>
+                        <button onClick={() => setSel(u)} style={{ padding:'.28rem .65rem',background:'rgba(6,182,212,0.1)',border:'1px solid rgba(6,182,212,0.25)',borderRadius:6,color:'#22d3ee',fontSize:'.73rem',cursor:'pointer',fontFamily:'inherit' }}>View</button>
+                        {isAdmin && <button onClick={() => openEdit(u)} style={{ padding:'.28rem .65rem',background:'rgba(167,139,250,0.1)',border:'1px solid rgba(167,139,250,0.25)',borderRadius:6,color:'#a78bfa',fontSize:'.73rem',cursor:'pointer',fontFamily:'inherit' }}>Edit</button>}
                         {isAdmin && (u.status === "active"
-                          ? <button className="btn btn-danger btn-sm" style={{ fontSize: "0.74rem" }} onClick={() => openToggle(u)}>Ban</button>
-                          : <button className="btn btn-accent btn-sm" style={{ fontSize: "0.74rem" }} onClick={() => openToggle(u)}>Unban</button>
+                          ? <button onClick={() => openToggle(u)} style={{ padding:'.28rem .65rem',background:'rgba(239,68,68,0.12)',border:'1px solid rgba(239,68,68,0.3)',borderRadius:6,color:'#f87171',fontSize:'.73rem',cursor:'pointer',fontFamily:'inherit' }}>Ban</button>
+                          : <button onClick={() => openToggle(u)} style={{ padding:'.28rem .65rem',background:'rgba(34,197,94,0.1)',border:'1px solid rgba(34,197,94,0.25)',borderRadius:6,color:'#4ade80',fontSize:'.73rem',cursor:'pointer',fontFamily:'inherit' }}>Unban</button>
                         )}
                       </div>
                     </td>
@@ -464,77 +542,87 @@ const AdminPanel = () => {
           )}
         </div>
 
+        {/* Pagination footer */}
         {!loading && users.length > 0 && (
-          <div className="table-footer">
-            <span className="table-count">
-              Showing {(page - 1) * limit + 1}–{Math.min(page * limit, pagination.total)} of {pagination.total} users
+          <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',padding:'.85rem 1.25rem',borderTop:'1px solid rgba(124,58,237,0.12)',background:'rgba(124,58,237,0.04)' }}>
+            <span style={{ fontSize:'.8rem',color:'rgba(167,139,250,0.5)' }}>
+              Showing {(page-1)*limit+1}–{Math.min(page*limit,pagination.total)} of {pagination.total} users
             </span>
             {pagination.totalPages > 1 && (
-              <div className="pagination">
-                <button className="page-btn" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>← Prev</button>
-                {pages.map(p => <button key={p} className={`page-btn ${p === page ? "active" : ""}`} onClick={() => setPage(p)}>{p}</button>)}
-                <button className="page-btn" onClick={() => setPage(p => Math.min(pagination.totalPages, p + 1))} disabled={page === pagination.totalPages}>Next →</button>
+              <div style={{ display:'flex',gap:'.35rem' }}>
+                <button onClick={() => setPage(p => Math.max(1,p-1))} disabled={page===1}
+                  style={{ padding:'.3rem .65rem',background:'transparent',border:'1px solid rgba(167,139,250,0.2)',borderRadius:7,color:'rgba(167,139,250,0.7)',fontSize:'.79rem',cursor:'pointer',fontFamily:'inherit',opacity:page===1?.4:1 }}>← Prev</button>
+                {pages.map(p => (
+                  <button key={p} onClick={() => setPage(p)}
+                    style={{ width:30,height:30,borderRadius:7,border:'none',background:p===page?'linear-gradient(135deg,#7c3aed,#6d28d9)':'rgba(124,58,237,0.1)',color:p===page?'#fff':'rgba(167,139,250,0.7)',fontSize:'.79rem',cursor:'pointer',fontFamily:'inherit' }}>{p}</button>
+                ))}
+                <button onClick={() => setPage(p => Math.min(pagination.totalPages,p+1))} disabled={page===pagination.totalPages}
+                  style={{ padding:'.3rem .65rem',background:'transparent',border:'1px solid rgba(167,139,250,0.2)',borderRadius:7,color:'rgba(167,139,250,0.7)',fontSize:'.79rem',cursor:'pointer',fontFamily:'inherit',opacity:page===pagination.totalPages?.4:1 }}>Next →</button>
               </div>
             )}
           </div>
         )}
       </div>
 
-      {/* Bottom grid */}
-      <div className="ad-bottom-grid">
-        <div className="ad-card">
-          <div className="ad-card-header"><span className="ad-card-title">Audit Log</span></div>
-          <div className="ad-audit-list">
-            {users.slice(0, 5).map((u, i) => (
-              <div className="ad-audit-item" key={i}>
-                <div className="ad-audit-dot" style={{ background: u.status === "active" ? "var(--success)" : "var(--danger)" }} />
-                <div className="ad-audit-text"><strong>{u.name}</strong> — {u.role} · {u.status}</div>
-                <div className="ad-audit-time">{fmt(u.updatedAt)}</div>
-              </div>
-            ))}
+      {/* ── Bottom grid ── */}
+      <div style={A.bottomGrid}>
+        {/* Audit Log */}
+        <div style={A.bottomCard}>
+          <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'1rem' }}>
+            <span style={{ fontSize:'.9rem',fontWeight:700,color:'#e8edf5' }}>📋 Audit Log</span>
           </div>
+          {users.slice(0,5).map((u,i) => (
+            <div key={i} style={{ display:'flex',alignItems:'center',gap:'.65rem',padding:'.55rem 0',borderBottom:'1px solid rgba(124,58,237,0.08)' }}
+              className={i === users.slice(0,5).length-1 ? '' : ''}>
+              <div style={{ width:7,height:7,borderRadius:'50%',background:u.status==='active'?'#22c55e':'#ef4444',flexShrink:0 }} />
+              <div style={{ flex:1,fontSize:'.79rem' }}><strong>{u.name}</strong> — {u.role} · {u.status}</div>
+              <div style={{ fontSize:'.7rem',color:'rgba(139,146,164,0.6)',whiteSpace:'nowrap' }}>{fmt(u.updatedAt)}</div>
+            </div>
+          ))}
         </div>
 
-        <div className="ad-card">
-          <div className="ad-card-header"><span className="ad-card-title">System Metrics</span></div>
-          <div className="info-rows">
-            {[
-              { label: "Total Users",   value: stats.total },
-              { label: "Active",        value: stats.active },
-              { label: "Inactive",      value: stats.inactive },
-              { label: "Admins",        value: stats.admins },
-              { label: "Managers",      value: stats.managers },
-              { label: "Regular Users", value: stats.regularUsers },
-            ].map((m, i) => (
-              <div className="info-row" key={i}>
-                <span className="info-label">{m.label}</span>
-                <span className="info-value" style={{ fontWeight: 600 }}>{m.value}</span>
-              </div>
-            ))}
+        {/* System Metrics */}
+        <div style={A.bottomCard}>
+          <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'1rem' }}>
+            <span style={{ fontSize:'.9rem',fontWeight:700,color:'#e8edf5' }}>📊 System Metrics</span>
           </div>
+          {[
+            { label:'Total Users',  value:stats.total,        color:'#a78bfa' },
+            { label:'Active',       value:stats.active,       color:'#4ade80' },
+            { label:'Inactive',     value:stats.inactive,     color:'#f87171' },
+            { label:'Admins',       value:stats.admins,       color:'#c4b5fd' },
+            { label:'Managers',     value:stats.managers,     color:'#fbbf24' },
+            { label:'Regular Users',value:stats.regularUsers, color:'#67e8f9' },
+          ].map((m,i) => (
+            <div key={i} style={{ display:'flex',justifyContent:'space-between',alignItems:'center',padding:'.6rem 0',borderBottom:'1px solid rgba(124,58,237,0.08)' }}>
+              <span style={{ fontSize:'.79rem',color:'rgba(196,181,253,0.6)' }}>{m.label}</span>
+              <span style={{ fontSize:'.9rem',fontWeight:700,color:m.color }}>{m.value}</span>
+            </div>
+          ))}
         </div>
 
-        <div className="ad-card">
-          <div className="ad-card-header"><span className="ad-card-title">Roles Breakdown</span></div>
-          <div className="ad-roles-list">
-            {[
-              { label: "Users",    value: stats.regularUsers, color: "var(--success)" },
-              { label: "Managers", value: stats.managers,     color: "var(--warning)" },
-              { label: "Admins",   value: stats.admins,       color: "var(--primary)" },
-              { label: "Inactive", value: stats.inactive,     color: "var(--danger)"  },
-            ].map((r, i) => (
-              <div className="ad-role-item" key={i}>
-                <div className="ad-role-left">
-                  <div className="ad-role-dot" style={{ background: r.color }} />
-                  <span className="ad-role-label">{r.label}</span>
-                </div>
-                <span className="ad-role-value">{r.value}</span>
-                <div className="ad-role-bar">
-                  <div className="ad-role-fill" style={{ width: stats.total ? `${(r.value / stats.total) * 100}%` : "0%", background: r.color }} />
-                </div>
-              </div>
-            ))}
+        {/* Roles Breakdown */}
+        <div style={A.bottomCard}>
+          <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'1rem' }}>
+            <span style={{ fontSize:'.9rem',fontWeight:700,color:'#e8edf5' }}>🎭 Roles Breakdown</span>
           </div>
+          {[
+            { label:'Users',    value:stats.regularUsers, color:'#4ade80' },
+            { label:'Managers', value:stats.managers,     color:'#fbbf24' },
+            { label:'Admins',   value:stats.admins,       color:'#a78bfa' },
+            { label:'Inactive', value:stats.inactive,     color:'#f87171' },
+          ].map((r,i) => (
+            <div key={i} style={{ display:'flex',alignItems:'center',gap:'.65rem',marginBottom:'.8rem' }}>
+              <div style={{ display:'flex',alignItems:'center',gap:'.45rem',width:85,flexShrink:0 }}>
+                <div style={{ width:7,height:7,borderRadius:'50%',background:r.color,flexShrink:0 }} />
+                <span style={{ fontSize:'.79rem',color:'rgba(196,181,253,0.6)' }}>{r.label}</span>
+              </div>
+              <span style={{ fontSize:'.83rem',fontWeight:700,color:r.color,width:38,textAlign:'right',flexShrink:0 }}>{r.value}</span>
+              <div style={{ flex:1,height:5,background:'rgba(124,58,237,0.15)',borderRadius:'999px',overflow:'hidden' }}>
+                <div style={{ height:'100%',borderRadius:'999px',background:r.color,width:stats.total?`${(r.value/stats.total)*100}%`:'0%',transition:'width .5s ease' }} />
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 
@@ -559,3 +647,4 @@ const AdminPanel = () => {
 };
 
 export default AdminPanel;
+
