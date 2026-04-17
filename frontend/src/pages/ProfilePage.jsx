@@ -15,6 +15,10 @@ const EyeIcon = ({ open }) => open ? (
   </svg>
 );
 
+/* Avatar color palette */
+const AVATAR_COLORS = ["#7c6af7","#00d4aa","#f59e0b","#ef4444","#06b6d4","#10b981","#8b5cf6","#ec4899"];
+const avatarColor = (name = "") => AVATAR_COLORS[name.charCodeAt(0) % AVATAR_COLORS.length] || "#7c6af7";
+
 const ProfilePage = () => {
   const { updateUserInContext } = useAuth();
   const [user, setUser] = useState(null);
@@ -72,7 +76,12 @@ const ProfilePage = () => {
     } finally { setSaving(false); }
   };
 
-  const fmt = (d) => d ? new Date(d).toLocaleString('en-US', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
+  const fmt = (d) => d
+    ? new Date(d).toLocaleString('en-US', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+    : '—';
+
+  const initials = user?.name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || 'U';
+  const color = avatarColor(user?.name || '');
 
   if (loading) return (
     <div className="page">
@@ -98,7 +107,12 @@ const ProfilePage = () => {
           {!editMode ? (
             <>
               <div className="user-profile-top">
-                <div className="user-avatar-lg">{user?.name?.charAt(0).toUpperCase()}</div>
+                <div
+                  className="user-avatar-lg"
+                  style={{ background: `linear-gradient(135deg, ${color}, #7c6af7)` }}
+                >
+                  {initials}
+                </div>
                 <div>
                   <div className="user-profile-name">{user?.name}</div>
                   <div className="user-profile-email">{user?.email}</div>

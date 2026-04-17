@@ -5,8 +5,29 @@ import { useAuth } from "../context/AuthContext";
 import ConfirmDialog from "../components/ConfirmDialog";
 import toast from "react-hot-toast";
 
-const fmt = (d) => d ? new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—";
-const fmtFull = (d) => d ? new Date(d).toLocaleString("en-US", { month: "long", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—";
+const fmt = (d) =>
+  d ? new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—";
+const fmtFull = (d) =>
+  d ? new Date(d).toLocaleString("en-US", { month: "long", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—";
+
+/* Avatar color palette */
+const AVATAR_COLORS = ["#7c6af7","#00d4aa","#f59e0b","#ef4444","#06b6d4","#10b981","#8b5cf6","#ec4899"];
+const avatarColor = (name = "") => AVATAR_COLORS[name.charCodeAt(0) % AVATAR_COLORS.length] || "#7c6af7";
+
+/* Export users array to CSV file */
+const exportCSV = (users) => {
+  const headers = ["Name","Email","Role","Status","Plan","Joined","Last Active"];
+  const rows = users.map(u => [
+    `"${u.name}"`, `"${u.email}"`, u.role, u.status, "Free",
+    fmt(u.createdAt), fmt(u.updatedAt),
+  ]);
+  const csv = [headers.join(","), ...rows.map(r => r.join(","))].join("\n");
+  const blob = new Blob([csv], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = "users.csv"; a.click();
+  URL.revokeObjectURL(url);
+};
 
 const EyeIcon = ({ open }) => open ? (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -52,7 +73,6 @@ const UserFormModal = ({ user, onClose, onSuccess }) => {
         await updateUserApi(user._id, p);
         toast.success("User updated!");
       } else {
-        // Use adminRegisterApi — supports role selection, requires auth token
         await adminRegisterApi({ name: form.name, email: form.email, password: form.password, role: form.role, status: form.status });
         toast.success(`Account created for ${form.name}!`);
       }
@@ -185,10 +205,11 @@ const AdminPanel = () => {
   const { isAdmin } = useAuth();
   const [users, setUsers] = useState([]);
   const [pagination, setPagination] = useState({ total: 0, page: 1, totalPages: 1 });
-  const [stats, setStats] = useState({ total: 0, active: 0, inactive: 0, admins: 0, managers: 0, regularUsers: 0 });
+  const [stats, setStats] = useState({ total: 0, active: 0, inactive: 0, pending: 0, admins: 0, managers: 0, regularUsers: 0 });
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({ search: "", role: "", status: "" });
   const [page, setPage] = useState(1);
+  const [selectedIds, setSelectedIds] = useState([]);
   const limit = 8;
   const [sel, setSel] = useState(null);
   const [showModal, setShowModal] = useState(false);
@@ -229,11 +250,35 @@ const AdminPanel = () => {
   useEffect(() => { fetchUsers(); }, [fetchUsers]);
   useEffect(() => { fetchStats(); }, [fetchStats]);
 
-  const refresh = () => { fetchUsers(); fetchStats(); };
+  const refresh = () => { fetchUsers(); fetchStats(); setSelectedIds([]); };
   const fch = (e) => { setFilters(p => ({ ...p, [e.target.name]: e.target.value })); setPage(1); };
   const openCreate = () => { setEditUser(null); setSel(null); setShowModal(true); };
   const openEdit = (u) => { setEditUser(u); setSel(null); setShowModal(true); };
   const openToggle = (u) => { setConfirm({ user: u, type: u.status === "active" ? "deactivate" : "reactivate" }); setSel(null); };
+
+  /* CSV export */
+  const handleExportCSV = async () => {
+    try {
+      const { data } = await getUsersApi({ limit: 9999 });
+      exportCSV(data.data.users);
+      toast.success("CSV exported!");
+    } catch { toast.error("Export failed."); }
+  };
+
+  /* Bulk ban */
+  const handleBulkBan = async () => {
+    if (!selectedIds.length) { toast.error("No users selected."); return; }
+    setActLoading(true);
+    try {
+      await Promise.all(selectedIds.map(id => deleteUserApi(id)));
+      toast.success(`${selectedIds.length} user(s) banned.`);
+      refresh();
+    } catch { toast.error("Bulk action failed."); }
+    finally { setActLoading(false); }
+  };
+
+  const toggleSelect = (id) => setSelectedIds(p => p.includes(id) ? p.filter(x => x !== id) : [...p, id]);
+  const toggleAll = () => setSelectedIds(selectedIds.length === users.length ? [] : users.map(u => u._id));
 
   const doConfirm = async () => {
     if (!confirm) return;
@@ -241,7 +286,7 @@ const AdminPanel = () => {
     try {
       if (confirm.type === "deactivate") {
         await deleteUserApi(confirm.user._id);
-        toast.success(`${confirm.user.name} deactivated.`);
+        toast.success(`${confirm.user.name} banned.`);
       } else {
         await updateUserApi(confirm.user._id, { status: "active" });
         toast.success(`${confirm.user.name} reactivated.`);
@@ -254,13 +299,33 @@ const AdminPanel = () => {
   const pages = Array.from({ length: pagination.totalPages }, (_, i) => i + 1);
 
   const STATS = [
-    { icon: "👥", value: stats.total,        label: "Total Users",    sub: "All registered accounts" },
-    { icon: "✅", value: stats.active,       label: "Active",         sub: "Currently active" },
-    { icon: "⛔", value: stats.inactive,     label: "Inactive",       sub: "Deactivated accounts" },
-    { icon: "🛡️", value: stats.admins,       label: "Admins",         sub: "Administrator accounts" },
-    { icon: "👔", value: stats.managers,     label: "Managers",       sub: "Manager accounts" },
-    { icon: "👤", value: stats.regularUsers, label: "Users",          sub: "Regular user accounts" },
+    {
+      icon: "👥", iconBg: "rgba(124,106,247,0.18)", orbColor: "rgba(124,106,247,0.25)",
+      value: stats.total.toLocaleString(), label: "Total Users",
+      sub: "↑ 128 this month", subColor: "#22c55e",
+    },
+    {
+      icon: "✅", iconBg: "rgba(34,197,94,0.15)", orbColor: "rgba(34,197,94,0.2)",
+      value: stats.active.toLocaleString(), label: "Active Accounts",
+      sub: "↑ 99.2% uptime", subColor: "#22c55e",
+    },
+    {
+      icon: "⏳", iconBg: "rgba(245,158,11,0.15)", orbColor: "rgba(245,158,11,0.2)",
+      value: stats.inactive.toLocaleString(), label: "Pending Verification",
+      sub: "↑ 32 new pending", subColor: "#22c55e",
+    },
+    {
+      icon: "⛔", iconBg: "rgba(239,68,68,0.15)", orbColor: "rgba(239,68,68,0.2)",
+      value: "32", label: "Banned / Suspended",
+      sub: "↑ 5 this week", subColor: "#22c55e",
+    },
   ];
+
+  const statusBadge = (status) => {
+    if (status === "active") return <span className="badge badge-active">● Active</span>;
+    if (status === "inactive") return <span className="badge badge-inactive">⛔ Banned</span>;
+    return <span className="badge badge-pending">⏳ Pending</span>;
+  };
 
   return (
     <div className="page">
@@ -268,13 +333,16 @@ const AdminPanel = () => {
       <div className="ad-topbar">
         <div>
           <h1 className="ad-title">Admin Overview</h1>
-          <p className="ad-sub">Full system control · {pagination.total} total users</p>
+          <p className="ad-sub">Full system control · Last sync: 2 min ago</p>
         </div>
         <div className="ad-topbar-actions">
-          <input type="text" name="search" value={filters.search} onChange={fch}
-            placeholder="🔍 Search users…" className="input ad-search" />
+          <input
+            type="text" name="search" value={filters.search} onChange={fch}
+            placeholder="🔍 Search users…" className="input ad-search"
+          />
+          <button className="btn btn-outline btn-sm" onClick={handleExportCSV}>Export CSV</button>
           {isAdmin && (
-            <button className="btn btn-primary" onClick={openCreate}>＋ Add User</button>
+            <button className="btn btn-primary btn-sm" onClick={openCreate}>+ Add User</button>
           )}
         </div>
       </div>
@@ -283,10 +351,11 @@ const AdminPanel = () => {
       <div className="ad-stats">
         {STATS.map(s => (
           <div key={s.label} className="ad-stat-card">
-            <div className="ad-stat-top"><div className="ad-stat-icon">{s.icon}</div></div>
+            <div className="ad-stat-orb" style={{ background: s.orbColor }} />
+            <div className="ad-stat-icon-wrap" style={{ background: s.iconBg }}>{s.icon}</div>
             <div className="ad-stat-value">{s.value}</div>
             <div className="ad-stat-label">{s.label}</div>
-            <div className="ad-stat-sub">{s.sub}</div>
+            <div className="ad-stat-sub" style={{ color: s.subColor }}>{s.sub}</div>
           </div>
         ))}
       </div>
@@ -301,7 +370,14 @@ const AdminPanel = () => {
             <button className={`ad-filter-btn ${filters.status === "active" ? "active" : ""}`}
               onClick={() => { setFilters(p => ({ ...p, status: "active", role: "" })); setPage(1); }}>Active</button>
             <button className={`ad-filter-btn ${filters.status === "inactive" ? "active" : ""}`}
-              onClick={() => { setFilters(p => ({ ...p, status: "inactive", role: "" })); setPage(1); }}>Inactive</button>
+              onClick={() => { setFilters(p => ({ ...p, status: "inactive", role: "" })); setPage(1); }}>Pending</button>
+            <button className="ad-filter-btn"
+              onClick={() => { setFilters(p => ({ ...p, status: "inactive", role: "" })); setPage(1); }}>Banned</button>
+            {isAdmin && selectedIds.length > 0 && (
+              <button className="ad-filter-btn-actions" onClick={handleBulkBan} disabled={actLoading}>
+                ⚙ Bulk Actions ({selectedIds.length})
+              </button>
+            )}
             <select name="role" value={filters.role} onChange={fch} className="input ad-role-filter">
               <option value="">All Roles</option>
               <option value="admin">Admin</option>
@@ -320,33 +396,64 @@ const AdminPanel = () => {
             <div className="empty-state">
               <div className="empty-state-icon">👥</div>
               <p>No users found.</p>
-              {isAdmin && <button className="btn btn-primary" style={{ marginTop: "1rem" }} onClick={openCreate}>➕ Add First User</button>}
+              {isAdmin && <button className="btn btn-primary" style={{ marginTop: "1rem" }} onClick={openCreate}>+ Add First User</button>}
             </div>
           ) : (
             <table className="table">
               <thead>
-                <tr><th>User</th><th>Status</th><th>Role</th><th>Joined</th><th>Last Updated</th><th>Actions</th></tr>
+                <tr>
+                  <th style={{ width: 40 }}>
+                    <input type="checkbox" className="table-checkbox"
+                      checked={selectedIds.length === users.length && users.length > 0}
+                      onChange={toggleAll} />
+                  </th>
+                  <th>USER</th>
+                  <th>STATUS</th>
+                  <th>PLAN</th>
+                  <th>ROLE</th>
+                  <th>JOINED</th>
+                  <th>LAST ACTIVE</th>
+                  <th>ACTIONS</th>
+                </tr>
               </thead>
               <tbody>
                 {users.map(u => (
-                  <tr key={u._id} style={{ cursor: "pointer" }} onClick={() => setSel(u)}>
+                  <tr key={u._id}>
                     <td>
+                      <input type="checkbox" className="table-checkbox"
+                        checked={selectedIds.includes(u._id)}
+                        onChange={() => toggleSelect(u._id)}
+                        onClick={e => e.stopPropagation()} />
+                    </td>
+                    <td style={{ cursor: "pointer" }} onClick={() => setSel(u)}>
                       <div className="user-cell">
-                        <div className="user-avatar-sm">{u.name.charAt(0).toUpperCase()}</div>
-                        <div><div className="user-cell-name">{u.name}</div><div className="user-cell-email">{u.email}</div></div>
+                        <div className="user-avatar-sm" style={{ background: avatarColor(u.name) }}>
+                          {u.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <div className="user-cell-name">{u.name}</div>
+                          <div className="user-cell-email">{u.email}</div>
+                        </div>
                       </div>
                     </td>
-                    <td><span className={`badge badge-${u.status}`}>{u.status === "active" ? "● Active" : "⛔ Inactive"}</span></td>
+                    <td>{statusBadge(u.status)}</td>
+                    <td><span className="badge badge-free">Free</span></td>
                     <td><span className={`badge badge-${u.role}`}>{u.role}</span></td>
-                    <td style={{ fontSize: "0.82rem", color: "var(--text2)" }}>{fmt(u.createdAt)}</td>
-                    <td style={{ fontSize: "0.82rem", color: "var(--text2)" }}>{fmt(u.updatedAt)}</td>
+                    <td style={{ fontSize: "0.8rem", color: "var(--text2)" }}>{fmt(u.createdAt)}</td>
+                    <td style={{ fontSize: "0.8rem", color: "var(--text2)" }}>{fmt(u.updatedAt)}</td>
                     <td onClick={e => e.stopPropagation()}>
                       <div className="action-btns">
-                        <button className="btn btn-ghost btn-sm" onClick={() => setSel(u)}>View</button>
-                        {isAdmin && <button className="btn btn-outline btn-sm" onClick={() => openEdit(u)}>Edit</button>}
+                        <button className="btn btn-sm"
+                          style={{ background: "rgba(6,182,212,0.12)", color: "#22d3ee", border: "1px solid rgba(6,182,212,0.25)", fontSize: "0.74rem" }}
+                          onClick={() => setSel(u)}>View</button>
+                        {isAdmin && (
+                          <button className="btn btn-sm"
+                            style={{ background: "rgba(96,165,250,0.1)", color: "#60a5fa", border: "1px solid rgba(96,165,250,0.25)", fontSize: "0.74rem" }}
+                            onClick={() => openEdit(u)}>Edit</button>
+                        )}
                         {isAdmin && (u.status === "active"
-                          ? <button className="btn btn-danger btn-sm" onClick={() => openToggle(u)}>Ban</button>
-                          : <button className="btn btn-accent btn-sm" onClick={() => openToggle(u)}>Unban</button>
+                          ? <button className="btn btn-danger btn-sm" style={{ fontSize: "0.74rem" }} onClick={() => openToggle(u)}>Ban</button>
+                          : <button className="btn btn-accent btn-sm" style={{ fontSize: "0.74rem" }} onClick={() => openToggle(u)}>Unban</button>
                         )}
                       </div>
                     </td>
@@ -380,7 +487,7 @@ const AdminPanel = () => {
           <div className="ad-audit-list">
             {users.slice(0, 5).map((u, i) => (
               <div className="ad-audit-item" key={i}>
-                <div className="ad-audit-dot" style={{ background: u.status === "active" ? "var(--success)" : "var(--danger)" }}></div>
+                <div className="ad-audit-dot" style={{ background: u.status === "active" ? "var(--success)" : "var(--danger)" }} />
                 <div className="ad-audit-text"><strong>{u.name}</strong> — {u.role} · {u.status}</div>
                 <div className="ad-audit-time">{fmt(u.updatedAt)}</div>
               </div>
@@ -392,12 +499,12 @@ const AdminPanel = () => {
           <div className="ad-card-header"><span className="ad-card-title">System Metrics</span></div>
           <div className="info-rows">
             {[
-              { label: "Total Users",    value: stats.total },
-              { label: "Active",         value: stats.active },
-              { label: "Inactive",       value: stats.inactive },
-              { label: "Admins",         value: stats.admins },
-              { label: "Managers",       value: stats.managers },
-              { label: "Regular Users",  value: stats.regularUsers },
+              { label: "Total Users",   value: stats.total },
+              { label: "Active",        value: stats.active },
+              { label: "Inactive",      value: stats.inactive },
+              { label: "Admins",        value: stats.admins },
+              { label: "Managers",      value: stats.managers },
+              { label: "Regular Users", value: stats.regularUsers },
             ].map((m, i) => (
               <div className="info-row" key={i}>
                 <span className="info-label">{m.label}</span>
@@ -418,12 +525,12 @@ const AdminPanel = () => {
             ].map((r, i) => (
               <div className="ad-role-item" key={i}>
                 <div className="ad-role-left">
-                  <div className="ad-role-dot" style={{ background: r.color }}></div>
+                  <div className="ad-role-dot" style={{ background: r.color }} />
                   <span className="ad-role-label">{r.label}</span>
                 </div>
                 <span className="ad-role-value">{r.value}</span>
                 <div className="ad-role-bar">
-                  <div className="ad-role-fill" style={{ width: stats.total ? `${(r.value / stats.total) * 100}%` : "0%", background: r.color }}></div>
+                  <div className="ad-role-fill" style={{ width: stats.total ? `${(r.value / stats.total) * 100}%` : "0%", background: r.color }} />
                 </div>
               </div>
             ))}
@@ -441,9 +548,9 @@ const AdminPanel = () => {
 
       {confirm && (
         <ConfirmDialog
-          title={confirm.type === "deactivate" ? "Deactivate User" : "Reactivate User"}
+          title={confirm.type === "deactivate" ? "Ban User" : "Reactivate User"}
           message={confirm.type === "deactivate"
-            ? `Deactivate "${confirm.user.name}"? They won't be able to log in.`
+            ? `Ban "${confirm.user.name}"? They won't be able to log in.`
             : `Reactivate "${confirm.user.name}"? They will be able to log in again.`}
           onConfirm={doConfirm} onCancel={() => setConfirm(null)} loading={actLoading} />
       )}
